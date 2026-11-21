@@ -1,0 +1,36 @@
+name: Album Photos
+slug: album-photos
+type: plugin
+version: 0.1.0
+description: Erzeugt für jedes Bild eines Albums eine eigene Foto-Seite unter der Album-URL.
+icon: picture-o
+author:
+  name: Christian Heinisch
+homepage: https://github.com/cheinisch/grav-plugin-album-photos
+keywords: grav, plugin, album, photo, gallery, fotoblog
+bugs: https://github.com/cheinisch/grav-plugin-album-photos/issues
+docs: https://github.com/cheinisch/grav-plugin-album-photos/blob/main/README.md
+license: AGPL-3.0
+
+form:
+  validation: loose
+  fields:
+    enabled:
+      type: toggle
+      label: Plugin aktiv
+      highlight: 1
+      default: 1
+      options:
+        1: PLUGIN_ADMIN.ENABLED
+        0: PLUGIN_ADMIN.DISABLED
+      validate:
+        type: bool
+    photo_template:
+      type: text
+      label: Standard-Template für Fotoseiten
+      default: photo
+      help: Wird verwendet, wenn das aktive Theme in der Zuordnung unten nicht vorkommt.
+    themes:
+      type: array
+      label: Zuordnung Theme zu Foto-Template
+      help: Schlüssel ist der Theme-Slug, Wert der Template-Name ohne .html.twig.

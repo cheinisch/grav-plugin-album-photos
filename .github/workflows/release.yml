@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Versionssprung (patch, minor oder major)'
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version erhöhen
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          CUR=$(sed -n 's/^version: //p' blueprints.yaml | tr -d "\"' ")
+          NEW=$(python3 - "$CUR" "$BUMP" <<'PY'
+          import sys
+          major, minor, patch = map(int, sys.argv[1].split('.'))
+          bump = sys.argv[2]
+          if bump == 'major':
+              major, minor, patch = major + 1, 0, 0
+          elif bump == 'minor':
+              minor, patch = minor + 1, 0
+          else:
+              patch += 1
+          print(f"{major}.{minor}.{patch}")
+          PY
+          )
+          sed -i "s/^version: .*/version: ${NEW}/" blueprints.yaml
+          echo "NEW_VERSION=${NEW}" >> "$GITHUB_ENV"
+
+      - name: Commit, Tag und Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blueprints.yaml CHANGELOG.md
+          git commit -m "Release v${NEW_VERSION}"
+          git tag "v${NEW_VERSION}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
+          git push origin "v${NEW_VERSION}"
+
+      - name: Grav-Paket bauen
+        run: |
+          PKG="album-photos"
+          rm -rf dist && mkdir -p "dist/$PKG"
+          cp album-photos.php album-photos.yaml blueprints.yaml README.md CHANGELOG.md LICENSE "dist/$PKG/"
+          (cd dist && zip -qr "../${PKG}-${NEW_VERSION}.zip" "$PKG")
+          unzip -l "${PKG}-${NEW_VERSION}.zip"
+
+      - name: Release mit Zip erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${NEW_VERSION}" "album-photos-${NEW_VERSION}.zip" \
+            --title "v${NEW_VERSION}" \
+            --generate-notes
