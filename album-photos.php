@@ -49,8 +49,13 @@ class AlbumPhotosPlugin extends Plugin
             return;
         }
 
+        // Die virtuelle Seite bindet an die album.md des Albums, weil Grav beim Laden
+        // das Änderungsdatum der Datei abfragt. Eine Datei pro Bild existiert nicht.
+        // Der Inhalt der album.md wird geleert, damit die Beschreibung des Albums
+        // nicht auf der Foto-Seite erscheint.
         $page = new Page();
-        $page->init(new SplFileInfo($album->path() . '/' . $slug . '.md'));
+        $page->init(new SplFileInfo($album->path() . '/album.md'));
+        $page->rawMarkdown('');
         $page->template($this->photoTemplate($config->get('system.pages.theme')));
         $page->parent($album);
         $page->slug($slug);
